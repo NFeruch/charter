@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Callback</title>
+</head>
+<body>
+    <script>
+        const fragment = window.location.hash.substring(1);
+        const params = new URLSearchParams(fragment);
+        const token = params.get("token");
+
+        if (token) {
+            window.location.href = `/save_token?token=${token}`;
+        } else {
+            console.error("Token not found in URL fragment.");
+        }
+    </script>
+    <p>Processing...</p>
+</body>
+</html>
