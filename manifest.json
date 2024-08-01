@@ -1,15 +1,20 @@
 {
 	"manifest_version": 3,
-	"name": "Navigate to Localhost",
+	"name": "Job Submission Extension",
 	"version": "1.0",
+	"description": "A Chrome extension to submit job details to a server.",
+	"permissions": ["identity", "activeTab", "storage"],
 	"background": {
 	  "service_worker": "background.js"
 	},
-	"permissions": [
-	  "activeTab"
-	],
 	"action": {
-	  "default_title": "Navigate to Localhost"
+	  "default_popup": "popup.html"
+	},
+	"icons": {
+	  "48": "icon.png"
+	},
+	"content_security_policy": {
+	  "extension_pages": "script-src 'self'; object-src 'self';"
 	}
   }
   

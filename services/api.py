@@ -1,28 +1,51 @@
-# clear && uvicorn backend.api:app --reload
-from fastapi import FastAPI, Depends
+# clear && uvicorn services.api:app --reload
+from fastapi import FastAPI, Depends, Request, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 from .integrations.trello import get_auth_url, get_boards, get_single_board, get_lists, create_job_card
+from .ai import get_ai_completions
 import os
+from markdownify import markdownify
 
 app = FastAPI()
 app.mount('/static', StaticFiles(directory='frontend/static'), name='static')
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Update with specific origins as needed
+    allow_credentials=True,
+    allow_methods=["*"],  # This allows all methods, including POST, GET, OPTIONS, etc.
+    allow_headers=["*"],
+)
+
 def get_token():
     token_path = 'token.txt'
     if not os.path.isfile(token_path):
-        return RedirectResponse(url='/authorize')
+        return HTTPException(status_code=404, detail='Token file not found')
 
     with open(token_path, 'r') as f:
         lines = f.readlines()
         if len(lines) != 1 or not lines[0].strip():
-            return RedirectResponse(url='/authorize')
+            return HTTPException(status_code=404, detail='Token file is empty')
 
     return lines[0].strip()
 
 @app.get('/')
 async def home():
     return {'Hello': 'World'}
+
+@app.get('/is_authenticated')
+async def user_is_authenticated():
+    token_path = 'token.txt'
+
+    if not os.path.isfile(token_path):
+        raise HTTPException(status_code=404, detail='Token file not found')
+
+    if os.stat(token_path).st_size == 0:
+        raise HTTPException(status_code=404, detail='Token file is empty')
+
+    return {'is_authenticated': True}
 
 @app.get('/authorize')
 async def authorize():
@@ -32,7 +55,12 @@ async def authorize():
 async def save_token(token: str):
     with open('token.txt', 'w') as f:
         f.write(token)
-    return RedirectResponse(url='/static/success.html')
+    return {'message': 'Token saved successfully'}
+
+@app.post('/job-description-html-to-markdown')
+async def html(request: Request):
+    html = await request.body()
+    return markdownify(html)
 
 @app.get('/get_boards')
 async def get_boards_route(token: str = Depends(get_token)):
@@ -40,8 +68,6 @@ async def get_boards_route(token: str = Depends(get_token)):
         return token
     
     return get_boards(token)
-
-@app.get('/get_boards_clean')
 
 @app.get('/get_board/{board_id}')
 async def get_board_route(board_id: str, token: str = Depends(get_token)):
